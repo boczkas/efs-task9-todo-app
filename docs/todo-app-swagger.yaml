@@ -27,6 +27,8 @@ paths:
       responses:
         "201":
           description: "Użytkownik dodany"
+        "400":
+          description: "Brak wymaganej treści"
         "409":
           description: "Użytkownik o podanej nazwie już istnieje"
   /task:
@@ -54,6 +56,8 @@ paths:
           description: "Zadanie zostało dodane"
           schema:
             $ref: "#/definitions/UUIDResponse"
+        "400":
+          description: "Brak wymaganych nagłówka lub treści"
         "401":
           description: "Brak użytkownika lub błędne hasło"
     get:
@@ -76,6 +80,8 @@ paths:
             type: "array"
             items:
               $ref: "#/definitions/TaskItem"
+        "400":
+          description: "Brak wymaganego nagłówka"
         "401":
           description: "Brak użytkownika lub błędne hasło"
   /task/{id}:
@@ -103,6 +109,8 @@ paths:
           description: "Szczegóły zadania"
           schema:
             $ref: "#/definitions/TaskItem"
+        "400":
+          description: "Brak wymaganego nagłówka"
         "401":
           description: "Brak użytkownika lub błędne hasło"
         "403":
@@ -139,6 +147,8 @@ paths:
           description: "Szczegóły zadania"
           schema:
             $ref: "#/definitions/TaskItem"
+        "400":
+          description: "Brak wymaganych nagłówka, parametru lub treści"
         "401":
           description: "Brak użytkownika lub błędne hasło"
         "403":
@@ -167,6 +177,8 @@ paths:
       responses:
         "200":
           description: "Zadanie usunięte"
+        "400":
+          description: "Brak wymaganych nagłówka lub parametru"
         "401":
           description: "Brak użytkownika lub błędne hasło"
         "403":
