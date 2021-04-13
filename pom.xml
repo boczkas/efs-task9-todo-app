@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>efs</groupId>
-    <artifactId>efs-main-template</artifactId>
+    <artifactId>efs-task9-todo-app</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>
@@ -19,7 +19,18 @@
     </properties>
 
     <dependencies>
-        <!--Add your dependencies here-->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.7.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.19.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
