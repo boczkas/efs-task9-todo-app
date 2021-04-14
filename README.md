@@ -10,6 +10,13 @@ Przedmiotem zadania jest zaimplementowanie aplikacji internetowej do zarządzani
 
 * Aplikacja powinna obsługiwać następujące żądania HTTP
 
+_metoda_ - metoda HTTP żądania,
+_adres_ - ścieżka adresu URL żądanego zasobu,
+_nagłówki_ - zmienne wysyłane w nagłówku żądania,
+_parametry_ - zmienne wysyłane w ścieżce zasobu,
+_treść_ - przykład ewentualnej treści żądania,
+_odpowiedzi_ - obsługiwane kody statusu oraz przykład ewentualnej treści odpowiedzi
+
 metoda | adres | naglówki | parametry | ciało | odpowiedzi
 ------ | ----- | -------- | --------- | ----- | ----------
 POST | /todo/user | | | <pre>{<br/>&#9;"username": "janKowalski",<br/>&#9;"password": "am!sK#123"<br/>}</pre> | <ul> <li>201</li><li>400</li><li>409</li> </ul>
@@ -19,12 +26,10 @@ GET | /todo/task/{id} | auth | id | | <ul><li>200<pre>{<br/>&#9;"id": "237e9877-
 PUT | /todo/task/{id} | auth | id | <pre>{<br/>&#9;"description": "Kup mleko",<br/>&#9;"due": "2021-06-30"<br/>}</pre> | <ul><li>200<pre>{<br/>&#9;"id": "237e9877-e79b-12d4-a765-321741963000",<br/>&#9;"description": "Kup mleko",<br/>&#9;"due": "2021-06-30"<br/>}</pre></li><li>400</li><li>401</li><li>403</li><li>404</li></ul>
 DELETE | /todo/task/{id} | auth | id |  | <ul><li>200</li><li>400</li><li>401</li><li>403</li><li>404</li></ul>
 
-_metoda_ - metoda HTTP żądania, 
-_adres_ - ścieżka adresu URL żądanego zasobu, 
-_nagłówki_ - zmienne wysyłane w nagłówku żądania, 
-_parametry_ - zmienne wysyłane w ścieżce zasobu, 
-_treść_ - przykład ewentualnej treści żądania,
-_odpowiedzi_ - obsługiwane kody statusu oraz przykład ewentualnej treści odpowiedzi
+**auth** - ciąg znaków 'base64(username):base64(password)', gdzie base64() oznacza funkcję kodującą algorytmem Base64. 
+Np., dla użytkownika `{ "username": "janKowalski", "password": "am!sK#123" }`, `auth` będzie równe `amFuS293YWxza2k=:YW0hc0sjMTIz`
+
+**id** - unikalny identyfikator zadania w formacie UUID
 
 * Aplikacja powinna obsługiwać treści żądań w formacie JSON
 * Aplikacja powinna zwracać treści odpowiedzi w formacie JSON
@@ -48,6 +53,7 @@ _odpowiedzi_ - obsługiwane kody statusu oraz przykład ewentualnej treści odpo
 1. [HTTP Methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods)
 1. [HTTP Response Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
 1. [JSON](http://www.json.org/json-pl.html)
+1. [UUID](https://docs.oracle.com/javase/7/docs/api/java/util/UUID.html)
 
 ### Materiały, które mogą być pomocne podczas rozwiązywania zadania
 
