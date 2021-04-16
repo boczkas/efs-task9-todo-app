@@ -52,6 +52,7 @@ Aplikacja umożliwia tworzenie użytkowników oraz zarządzanie prostymi zadania
 ### Ograniczenia
 
 * Główna klasa powinna nazywać się [`TODOApplication`](./src/main/java/efs/task/todoapp/TODOApplication.java)
+* Klasa główna powinna znajdować się w pakiecie `efs.task.todoapp`
 * Klasa główna powinna posiadać bezparametrowy konstruktor z dostępem conajmniej _pakietowym_
 * W klasie głównej powinna znajdywać się zaimplementowana metoda
   ```
