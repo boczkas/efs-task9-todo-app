@@ -17,7 +17,7 @@ _parametry_ - zmienne wysyłane w ścieżce zasobu,
 _treść_ - przykład ewentualnej treści żądania,
 _odpowiedzi_ - obsługiwane kody statusu oraz przykład ewentualnej treści odpowiedzi
 
-metoda | adres | naglówki | parametry | ciało | odpowiedzi
+metoda | adres | nagłówki | parametry | ciało | odpowiedzi
 ------ | ----- | -------- | --------- | ----- | ----------
 POST | /todo/user | | | <pre>{<br/>&#9;"username": "janKowalski",<br/>&#9;"password": "am!sK#123"<br/>}</pre> | <ul> <li>201</li><li>400</li><li>409</li> </ul>
 POST | /todo/task | auth | | <pre>{<br/>&#9;"description": "Kup mleko",<br/>&#9;"due": "2021-06-30"<br/>}</pre> | <ul><li>201<pre>{<br/>&#9;"id": "237e9877-e79b-12d4-a765-321741963000"<br/>}</li><li>400</li><li>401</li><ul>
@@ -31,8 +31,10 @@ Np., dla użytkownika `{ "username": "janKowalski", "password": "am!sK#123" }`, 
 
 **id** - unikalny identyfikator zadania w formacie UUID
 
+* Aplikacja powinna być dostępona pod adresem [http://localhost:8080](http://localhost:8080/)
 * Aplikacja powinna obsługiwać treści żądań w formacie JSON
 * Aplikacja powinna zwracać treści odpowiedzi w formacie JSON
+* Treści żądań i odpowiedzi powinny być serializowane oraz deserializowane przy użyciu klas z biblioteki Gson
 * Informacje o tym, które nagłówki, parametry lub pola w dokumentach JSON znajdują się w szczegółowej [dokumenatcji Swagger API](https://epam-online-courses.github.io/efs-task9-todo-app/) aplikacji
 * Zadania i użytkownicy stworzeniu przy użyciu żądań, powinni być pamiętani w ramach jednokrotnego uruchomienia aplikacji
 * Aplikacja powinna posiadać testy jednostkowe sprawdzające wszystkie obsługiwane żądania
@@ -40,7 +42,12 @@ Np., dla użytkownika `{ "username": "janKowalski", "password": "am!sK#123" }`, 
 
 ### Ograniczenia
 
-* Aplikacja powinna być zaimplementowana wyłącznie z użyciem klas z JDK. Wyjątkiem są biblioteki służące do pisania testów jednostkowych (np. JUnit, AssertJ)
+* Aplikacja powinna być zaimplementowana wyłącznie z użyciem klas z JDK. 
+  Wyjątkiem są biblioteka Gson oraz biblioteki służące do pisania testów jednostkowych (np. JUnit, AssertJ)
+
+### Mile widziane
+
+* Aplikacja powinna logować najważniejsze informacje w trakcie działania aplikacji
 
 ## Sprawdzanie i ocena rozwiązania
 
@@ -53,9 +60,11 @@ Np., dla użytkownika `{ "username": "janKowalski", "password": "am!sK#123" }`, 
 1. [HTTP Methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods)
 1. [HTTP Response Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
 1. [JSON](http://www.json.org/json-pl.html)
+1. [Gson User Guide](https://github.com/google/gson/blob/master/UserGuide.md)   
 1. [UUID](https://docs.oracle.com/javase/7/docs/api/java/util/UUID.html)
 
 ### Materiały, które mogą być pomocne podczas rozwiązywania zadania
 
 1. [REST API Tutorial](https://restfulapi.net/)
 1. [How to use Swagger UI](https://idratherbewriting.com/learnapidoc/pubapis_swagger.html)
+1. [Java Logging API](https://www.vogella.com/tutorials/Logging/article.html)
