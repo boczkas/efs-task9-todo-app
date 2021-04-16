@@ -1,34 +1,11 @@
 {
   "tests": [
     {
-      "name": "Example test 1",
-      "setup": "",
-      "run": "java HelloWorld.java",
-      "input": "",
+      "name": "Run all tests",
+      "run": "mvn -B --quiet test",
       "output": "",
-      "comparison": "included",
-      "timeout": 10,
-      "points": 1
-    },
-    {
-      "name": "Example test 2",
-      "setup": "",
-      "run": "javac HelloWorld.java; java HelloWorld",
-      "input": "",
-      "output": "HelloWorld",
-      "comparison": "included",
-      "timeout": 10,
-      "points": 5
-    },
-    {
-      "name": "Example test 3",
-      "setup": "",
-      "run": "mvn -B -q compile",
-      "input": "",
-      "output": "",
-      "comparison": "included",
-      "timeout": 10,
-      "points": 13
+      "comparison": "exact",
+      "points": 10
     }
   ]
 }

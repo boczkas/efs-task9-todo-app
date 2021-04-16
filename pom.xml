@@ -31,6 +31,21 @@
             <version>3.19.0</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>efs</groupId>
+            <artifactId>efs-task9-todo-app.tests</artifactId>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <version>1.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.6</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -47,5 +62,12 @@
             </plugin>
         </plugins>
     </build>
+
+    <repositories>
+        <repository>
+            <id>local-maven-repo</id>
+            <url>file:///${project.basedir}/local-maven-repo</url>
+        </repository>
+    </repositories>
 
 </project>
