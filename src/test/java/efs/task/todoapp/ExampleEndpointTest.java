@@ -1,7 +1,5 @@
 package efs.task.todoapp;
 
-import com.google.gson.Gson;
-import efs.task.todoapp.web.UserBody;
 import efs.task.todoapp.util.TODOServerExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,16 +11,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 
-import static java.net.http.HttpRequest.BodyPublishers.ofString;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(TODOServerExtension.class)
-class UserEndpointTest {
+class ExampleEndpointTest {
 
-    private static final int CREATED = 201;
-
-    private final Gson gson = new Gson();
+    public static final int NOT_FOUND = 404;
+    public static final String TODO_APP_PATH = "http://localhost:8080/todo/";
 
     private HttpClient httpClient;
 
@@ -33,19 +29,18 @@ class UserEndpointTest {
 
     @Test
     @Timeout(1)
-    void shouldReturnBadRequestErrorWhenMissingBody() throws IOException, InterruptedException {
+    void shouldReturnNotFoundStatusForUnhandledPaths() throws IOException, InterruptedException {
         //given
-        var user = new UserBody("janKowalski", "am!sK#123");
 
         var httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/todo/user"))
-                .POST(ofString(gson.toJson(user)))
+                .uri(URI.create(TODO_APP_PATH + "non/exisiting/endpoint"))
+                .GET()
                 .build();
 
         //when
         var httpResponse = httpClient.send(httpRequest, ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(CREATED);
+        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(NOT_FOUND);
     }
 }
