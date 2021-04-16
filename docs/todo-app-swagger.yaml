@@ -3,7 +3,7 @@ info:
   description: "Aplikacja do zarządzania zadaniami"
   version: "1.0.0"
   title: "TODO App"
-host: "localhost"
+host: "localhost:8080"
 basePath: "/todo"
 tags:
   - name: "users"
