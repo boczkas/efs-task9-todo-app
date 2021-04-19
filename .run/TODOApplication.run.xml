@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TODOApplication" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="efs.task.todoapp.TODOApplication" />
+  <configuration default="false" name="ToDoApplication" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="efs.task.todoapp.ToDoApplication" />
     <module name="efs-task9-todo-app" />
     <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
     <method v="2">

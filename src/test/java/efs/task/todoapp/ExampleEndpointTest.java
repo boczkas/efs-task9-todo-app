@@ -1,6 +1,6 @@
 package efs.task.todoapp;
 
-import efs.task.todoapp.util.TODOServerExtension;
+import efs.task.todoapp.util.ToDoServerExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -14,7 +14,7 @@ import java.net.http.HttpRequest;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(TODOServerExtension.class)
+@ExtendWith(ToDoServerExtension.class)
 class ExampleEndpointTest {
 
     public static final int NOT_FOUND = 404;
@@ -31,7 +31,6 @@ class ExampleEndpointTest {
     @Timeout(1)
     void shouldReturnNotFoundStatusForUnhandledPaths() throws IOException, InterruptedException {
         //given
-
         var httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(TODO_APP_PATH + "non/exisiting/endpoint"))
                 .GET()
