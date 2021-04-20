@@ -40,8 +40,8 @@ public final class WebServerFactory {
         var service = new ToDoService(userRepository, taskRepository);
         var userDecoder = new UserDecoder();
 
-        var userHttpHandler = new UserHttpHandler(service);
-        var taskHttpHandler = new TaskHttpHandler(service, userDecoder, TASK_PATH);
+        var userHttpHandler = new UserHttpHandler(USER_PATH, service);
+        var taskHttpHandler = new TaskHttpHandler(TASK_PATH, service, userDecoder);
 
         server.createContext(USER_PATH, userHttpHandler);
         server.createContext(TASK_PATH, taskHttpHandler);

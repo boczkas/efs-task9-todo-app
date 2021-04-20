@@ -1,11 +1,11 @@
 package efs.task.todoapp.web;
 
-import com.sun.net.httpserver.HttpExchange;
 import efs.task.todoapp.model.User;
 
 import java.util.Base64;
+import java.util.Map;
 
-import static java.util.Objects.isNull;
+import static efs.task.todoapp.util.StringUtils.isBlank;
 
 public class UserDecoder {
     private static final String AUTH_HEADER = "auth";
@@ -16,21 +16,17 @@ public class UserDecoder {
         base64decoder = Base64.getDecoder();
     }
 
-    protected User getUser(HttpExchange exchange) {
-        var authHeaders = exchange.getRequestHeaders().get(AUTH_HEADER);
+    User decodeAndValidateUser(Map<String, String> headers) {
+        var authHeader = headers.get(AUTH_HEADER);
 
-        if (isNull(authHeaders) || authHeaders.isEmpty()) {
-            throw new UserDecodingException("auth header is required");
+        if (isBlank(authHeader)) {
+            throw new BadRequestException("auth header is required");
         }
 
-        return getUser(authHeaders.get(0));
-    }
-
-    private User getUser(String authHeader) {
         var headerParts = authHeader.split(":");
 
         if (headerParts.length != 2) {
-            throw new UserDecodingException("auth header does not contain two parts");
+            throw new BadRequestException("auth header does not contain two parts");
         }
 
         return getUser(headerParts[0], headerParts[1]);
@@ -41,14 +37,14 @@ public class UserDecoder {
         try {
             username = new String(base64decoder.decode(usernameEncoded));
         } catch (IllegalArgumentException e) {
-            throw new UserDecodingException("username is not Base64 encoded", e);
+            throw new BadRequestException("username is not Base64 encoded", e);
         }
 
         String password;
         try {
             password = new String(base64decoder.decode(passwordEncoded));
         } catch (Exception e) {
-            throw new UserDecodingException("password is not Base64 encoded", e);
+            throw new BadRequestException("password is not Base64 encoded", e);
         }
 
         return new User(username, password);

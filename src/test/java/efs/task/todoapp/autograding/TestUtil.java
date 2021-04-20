@@ -1,5 +1,7 @@
 package efs.task.todoapp.autograding;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -11,7 +13,7 @@ public final class TestUtil {
     static final String PATH_USER = PATH_ROOT + "/user";
     static final String PATH_TASK = PATH_ROOT + "/task";
 
-    public static final String HEADER_AUTH = "auth";
+    static final String HEADER_AUTH = "auth";
 
     private TestUtil() {}
 
@@ -22,11 +24,11 @@ public final class TestUtil {
         return toJson(userProperties);
     }
 
-    public static String taskJson(String description) {
+    static String taskJson(String description) {
         return taskJson(description, null);
     }
 
-    public static String taskJson(String description, String due) {
+    static String taskJson(String description, String due) {
         Map<String, String> taskProperties = new HashMap<>();
         taskProperties.put("description", description);
         taskProperties.put("due", due);
@@ -38,5 +40,17 @@ public final class TestUtil {
                 .filter(entry -> nonNull(entry.getValue()))
                 .map(entry -> '"' + entry.getKey() + "\":\"" + entry.getValue() + '"')
                 .collect(Collectors.joining(",", "{", "}"));
+    }
+
+    static HttpRequest.Builder userRequestBuilder() {
+        return HttpRequest.newBuilder(URI.create(PATH_USER));
+    }
+
+    static HttpRequest.Builder taskRequestBuilder() {
+        return HttpRequest.newBuilder(URI.create(PATH_TASK));
+    }
+
+    static HttpRequest.Builder taskRequestBuilder(Object taskId) {
+        return HttpRequest.newBuilder(URI.create(PATH_TASK + "/" + taskId.toString()));
     }
 }

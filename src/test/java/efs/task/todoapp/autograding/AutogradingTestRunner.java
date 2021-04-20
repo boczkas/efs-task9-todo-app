@@ -10,6 +10,7 @@ import org.junit.platform.launcher.listeners.TestExecutionSummary;
 import java.io.PrintWriter;
 
 import static java.util.Objects.nonNull;
+import static org.junit.platform.engine.discovery.DiscoverySelectors.selectMethod;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectPackage;
 
 public final class AutogradingTestRunner {
@@ -17,26 +18,20 @@ public final class AutogradingTestRunner {
     private static final String ROOT_PACKAGE = "efs.task.todoapp.autograding";
     private static final int STACK_TRACE_LIMIT = 9;
 
-    private final String packageName;
-
-    private AutogradingTestRunner(String packageName) {
-        this.packageName = packageName;
-    }
-
     public static void main(String[] args) {
-        AutogradingTestRunner runner = new AutogradingTestRunner(ROOT_PACKAGE);
-        runner.runAllTestsIn();
+        AutogradingTestRunner runner = new AutogradingTestRunner();
+        runner.runAllTestsIn(args.length > 0 ? args[0] : null);
     }
 
-    void runAllTestsIn() {
-        TestExecutionSummary summary = executeTests();
+    void runAllTestsIn(String methodName) {
+        TestExecutionSummary summary = executeTests(methodName);
         printSummary(summary);
     }
 
-    private TestExecutionSummary executeTests() {
+    private TestExecutionSummary executeTests(String methodName) {
         var listener = new SummaryGeneratingListener();
         var request = LauncherDiscoveryRequestBuilder.request()
-                .selectors(selectPackage(packageName))
+                .selectors(nonNull(methodName) ? selectMethod(methodName) : selectPackage(ROOT_PACKAGE))
                 .build();
 
         var launcher = LauncherFactory.create();

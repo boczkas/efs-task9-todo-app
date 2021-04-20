@@ -9,12 +9,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.util.stream.Stream;
 
-import static efs.task.todoapp.autograding.TestUtil.PATH_USER;
 import static efs.task.todoapp.autograding.TestUtil.userJson;
 import static efs.task.todoapp.web.HttpStatus.BAD_REQUEST;
 import static efs.task.todoapp.web.HttpStatus.CONFLICT;
@@ -47,7 +44,7 @@ class UserEndpointTest {
     @Timeout(1)
     void shouldReturnBadRequestStatus(String body) throws IOException, InterruptedException {
         //given
-        var httpRequest = userRequestBuilder()
+        var httpRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(body))
                 .build();
 
@@ -62,7 +59,7 @@ class UserEndpointTest {
     @Timeout(1)
     void shouldReturnCreatedStatus() throws IOException, InterruptedException {
         //given
-        var httpRequest = userRequestBuilder()
+        var httpRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
 
@@ -77,7 +74,7 @@ class UserEndpointTest {
     @Timeout(1)
     void shouldReturnConflictStatus() throws IOException, InterruptedException {
         //given
-        var httpRequest = userRequestBuilder()
+        var httpRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
 
@@ -88,9 +85,5 @@ class UserEndpointTest {
 
         //then
         assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(CONFLICT.getCode());
-    }
-
-    private HttpRequest.Builder userRequestBuilder() {
-        return HttpRequest.newBuilder(URI.create(PATH_USER));
     }
 }

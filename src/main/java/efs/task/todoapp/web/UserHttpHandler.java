@@ -1,26 +1,23 @@
 package efs.task.todoapp.web;
 
-import com.sun.net.httpserver.HttpExchange;
 import efs.task.todoapp.model.User;
 import efs.task.todoapp.service.ToDoService;
 
-import java.io.IOException;
-import java.util.Optional;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import static efs.task.todoapp.util.StringUtils.isBlank;
+import static efs.task.todoapp.web.HandlerResponse.response;
 import static efs.task.todoapp.web.HttpMethod.POST;
-import static efs.task.todoapp.web.HttpStatus.BAD_REQUEST;
 import static efs.task.todoapp.web.HttpStatus.CONFLICT;
 import static efs.task.todoapp.web.HttpStatus.CREATED;
 import static efs.task.todoapp.web.HttpStatus.METHOD_NOT_ALLOWED;
-import static java.util.Objects.isNull;
 
 public class UserHttpHandler extends TodoHttpHandler {
     private static final Logger LOGGER = Logger.getLogger(UserHttpHandler.class.getName());
 
-    public UserHttpHandler(ToDoService service) {
-        super(service);
+    public UserHttpHandler(String contextPath, ToDoService service) {
+        super(contextPath, service);
     }
 
     @Override
@@ -29,49 +26,39 @@ public class UserHttpHandler extends TodoHttpHandler {
     }
 
     @Override
-    protected void handleExchange(HttpExchange exchange) {
-        if (isMethodAllowed(exchange)) {
-            var maybeUser = getUser(exchange);
-            maybeUser.ifPresent(user -> saveUser(exchange, user));
+    protected HandlerResponse handle(HttpMethod method, String path, Map<String, String> headers, String body) {
+        if (method != POST) {
+            return response(METHOD_NOT_ALLOWED);
         }
+
+        var user = decodeAndValidateUser(body);
+        return saveUser(user);
     }
 
-    private boolean isMethodAllowed(HttpExchange exchange) {
-        var allowed = POST.is(exchange.getRequestMethod());
-        if (!allowed) {
-            response(exchange, METHOD_NOT_ALLOWED);
+    private User decodeAndValidateUser(String body) {
+        if (isBlank(body)) {
+            throw new BadRequestException("Body is required");
         }
-        return allowed;
-    }
 
-    private Optional<User> getUser(HttpExchange exchange) {
-        var user = getBody(exchange, User.class);
-        LOGGER.fine("Request body:" + user);
-
-        if (isNull(user)) {
-            response(exchange, BAD_REQUEST, "Body is required");
-            return Optional.empty();
-        }
+        var user = gson.fromJson(body, User.class);
 
         if (isBlank(user.getUsername())) {
-            response(exchange, BAD_REQUEST, "username is required");
-            return Optional.empty();
+            throw new BadRequestException("username is required");
         }
 
         if (isBlank(user.getPassword())) {
-            response(exchange, BAD_REQUEST, "password is required");
-            return Optional.empty();
+            throw new BadRequestException("password is required");
         }
 
-        return Optional.of(user);
+        return user;
     }
 
-    private void saveUser(HttpExchange exchange, User user) {
+    private HandlerResponse saveUser(User user) {
         var userAdded = service.saveUser(user);
         if (userAdded) {
-            response(exchange, CREATED);
+            return response(CREATED);
         } else {
-            response(exchange, CONFLICT, String.format("User with '%s' username already exists", user.getUsername()));
+            return response(CONFLICT, String.format("User with '%s' username already exists", user.getUsername()));
         }
     }
 }

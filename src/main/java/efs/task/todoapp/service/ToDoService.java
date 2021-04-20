@@ -35,12 +35,12 @@ public class ToDoService {
         return taskRepository.save(taskEntity);
     }
 
-    public Task findTask(User user, UUID taskId) {
+    public Task getTask(User user, UUID taskId) {
         checkIfUserAuthorized(user);
 
         var taskEntity = taskRepository.query(taskId);
         if (isNull(taskEntity)) {
-            throw new NonExisitingException(String.format("Task with '%s' id doesn't exist", taskId));
+            throw new NonExistingException(String.format("Task with '%s' id doesn't exist", taskId));
         }
 
         if (!user.getUsername().equals(taskEntity.getUsername())) {
@@ -50,7 +50,7 @@ public class ToDoService {
         return taskFrom(taskEntity);
     }
 
-    public List<Task> findTasks(User user) {
+    public List<Task> getTasks(User user) {
         checkIfUserAuthorized(user);
 
         List<TaskEntity> tasks = taskRepository.query(taskEntity -> user.getUsername().equals(taskEntity.getUsername()));
@@ -64,7 +64,7 @@ public class ToDoService {
 
         var taskEntity = taskRepository.query(taskId);
         if (isNull(taskEntity)) {
-            throw new NonExisitingException(String.format("Task with '%s' id doesn't exist", taskId));
+            throw new NonExistingException(String.format("Task with '%s' id doesn't exist", taskId));
         }
 
         if (!user.getUsername().equals(taskEntity.getUsername())) {
@@ -81,7 +81,7 @@ public class ToDoService {
 
         var taskEntity = taskRepository.query(taskId);
         if (isNull(taskEntity)) {
-            throw new NonExisitingException(String.format("Task with '%s' id doesn't exist", taskId));
+            throw new NonExistingException(String.format("Task with '%s' id doesn't exist", taskId));
         }
 
         if (!user.getUsername().equals(taskEntity.getUsername())) {

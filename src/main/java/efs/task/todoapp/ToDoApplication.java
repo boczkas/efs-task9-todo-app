@@ -22,6 +22,8 @@ public class ToDoApplication {
     }
 
     public HttpServer createServer() {
-        return WebServerFactory.createServer();
+        var server = WebServerFactory.createServer();
+        LOGGER.fine("------------- Server at " + server.getAddress() + " created --------------------------");
+        return server;
     }
 }

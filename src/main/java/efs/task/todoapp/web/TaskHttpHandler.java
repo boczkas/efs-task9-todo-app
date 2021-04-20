@@ -1,47 +1,35 @@
 package efs.task.todoapp.web;
 
-import com.sun.net.httpserver.HttpExchange;
+import com.google.gson.JsonSyntaxException;
 import efs.task.todoapp.model.Task;
 import efs.task.todoapp.model.TaskIdentifier;
 import efs.task.todoapp.model.User;
-import efs.task.todoapp.service.ForbiddenException;
-import efs.task.todoapp.service.NonExisitingException;
 import efs.task.todoapp.service.ToDoService;
-import efs.task.todoapp.service.UnathorizedException;
 
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static efs.task.todoapp.util.StringUtils.isBlank;
-import static efs.task.todoapp.web.HttpMethod.DELETE;
-import static efs.task.todoapp.web.HttpMethod.GET;
-import static efs.task.todoapp.web.HttpMethod.POST;
-import static efs.task.todoapp.web.HttpMethod.PUT;
-import static efs.task.todoapp.web.HttpStatus.BAD_REQUEST;
+import static efs.task.todoapp.web.HandlerResponse.okResponse;
+import static efs.task.todoapp.web.HandlerResponse.response;
 import static efs.task.todoapp.web.HttpStatus.CREATED;
-import static efs.task.todoapp.web.HttpStatus.FORBIDDEN;
 import static efs.task.todoapp.web.HttpStatus.METHOD_NOT_ALLOWED;
-import static efs.task.todoapp.web.HttpStatus.NOT_FOUND;
-import static efs.task.todoapp.web.HttpStatus.OK;
-import static efs.task.todoapp.web.HttpStatus.UNAUTHORIZED;
-import static java.util.Objects.isNull;
 
 public class TaskHttpHandler extends TodoHttpHandler {
     private static final Logger LOGGER = Logger.getLogger(TaskHttpHandler.class.getName());
-    private static final Set<HttpMethod> ALLOWED_METHODS = Set.of(POST, GET, PUT, DELETE);
+    private static final String TASK_ID_GROUP = "taskId";
+    private static final String TASK_ID_REGEX = String.format("^/(?<%s>[\\w-]+)[/\\?]?", TASK_ID_GROUP);
 
     private final UserDecoder userDecoder;
     private final Pattern pattern;
 
-    public TaskHttpHandler(ToDoService service, UserDecoder userDecoder, String taskPath) {
-        super(service);
+    public TaskHttpHandler(String contextPath, ToDoService service, UserDecoder userDecoder) {
+        super(contextPath, service);
         this.userDecoder = userDecoder;
-
-        var regex = "^" + taskPath + "/(?<taskId>[\\w-]+)[/\\?]?";
-        pattern = Pattern.compile(regex);
+        pattern = Pattern.compile(TASK_ID_REGEX);
     }
 
     @Override
@@ -50,143 +38,105 @@ public class TaskHttpHandler extends TodoHttpHandler {
     }
 
     @Override
-    protected void handleExchange(HttpExchange exchange) {
-        if (methodIsAllowed(exchange)) {
-            try {
-                User user = userDecoder.getUser(exchange);
-                handleExchange(exchange, user);
-            } catch (UserDecodingException e) {
-                response(exchange, BAD_REQUEST, e.getLocalizedMessage());
-            } catch (UnathorizedException e) {
-                response(exchange, UNAUTHORIZED, e.getLocalizedMessage());
-            } catch (NonExisitingException e) {
-                response(exchange, NOT_FOUND, e.getLocalizedMessage());
-            } catch (ForbiddenException e) {
-                response(exchange, FORBIDDEN, e.getLocalizedMessage());
-            }
+    protected HandlerResponse handle(HttpMethod method, String path, Map<String, String> headers, String body) {
+        User user = userDecoder.decodeAndValidateUser(headers);
+
+        switch (method) {
+            case POST:
+                return handlePost(body, user);
+            case GET:
+                return handleGet(path, user);
+            case PUT:
+                return handlePut(path, body, user);
+            case DELETE:
+                return handleDelete(path, user);
+            default:
+                return response(METHOD_NOT_ALLOWED);
         }
     }
 
-    private boolean methodIsAllowed(HttpExchange exchange) {
-        var requestMethod = exchange.getRequestMethod();
-        var allowed = ALLOWED_METHODS.stream()
-                .anyMatch(httpMethod -> httpMethod.is(requestMethod));
-        if (!allowed) {
-            response(exchange, METHOD_NOT_ALLOWED);
-        }
-        return allowed;
-    }
-
-    private void handleExchange(HttpExchange exchange, User user) {
-        var requestMethod = exchange.getRequestMethod();
-
-        if (POST.is(requestMethod) || PUT.is(requestMethod)) {
-            var maybeTask = getTask(exchange);
-            maybeTask.ifPresent(task -> {
-                if (POST.is(requestMethod)) {
-                    handlePost(exchange, user, task);
-                } else {
-                    handlePut(exchange, user, task);
-                }
-            });
-        } else if (GET.is(requestMethod)) {
-            handleGet(exchange, user);
-        } else {
-            handleDelete(exchange, user);
-        }
-    }
-
-    private void handlePost(HttpExchange exchange, User user, Task task) {
+    private HandlerResponse handlePost(String body, User user) {
+        var task = decodeAndValidateTask(body);
         var uuid = service.saveTask(user, task);
+
         var idResponse = new TaskIdentifier(uuid);
-        var responseBody = gson.toJson(idResponse);
-        response(exchange, CREATED, responseBody);
+        var responseJson = gson.toJson(idResponse);
+
+        return response(CREATED, responseJson);
     }
 
-    private void handlePut(HttpExchange exchange, User user, Task task) {
-        var maybeTaskId = getTaskUuid(exchange);
+    private HandlerResponse handleGet(String path, User user) {
+        var maybeTaskId = getTaskId(path);
+
         if (maybeTaskId.isPresent()) {
-            updateTask(exchange, user, maybeTaskId.get(), task);
+            var task = service.getTask(user, maybeTaskId.get());
+
+            var taskJson = gson.toJson(task);
+            return okResponse(taskJson);
         } else {
-            response(exchange, BAD_REQUEST, "Valid task id in path is required");
+            var tasks = service.getTasks(user);
+            var tasksJson = gson.toJson(tasks);
+            return okResponse(tasksJson);
         }
     }
 
-    private void handleGet(HttpExchange exchange, User user) {
-        var maybeTaskId = getTaskUuid(exchange);
-        if (maybeTaskId.isPresent()) {
-            loadTask(exchange, user, maybeTaskId.get());
-        } else {
-            loadTasks(exchange, user);
+    private HandlerResponse handlePut(String path, String body, User user) {
+        var maybeTaskId = getTaskId(path);
+
+        if (maybeTaskId.isEmpty()) {
+            throw new BadRequestException("Valid task id in path is required");
         }
+
+        var task = decodeAndValidateTask(body);
+        var updatedTask = service.updateTask(user, maybeTaskId.get(), task);
+
+        var taskJson = gson.toJson(updatedTask);
+        return okResponse(taskJson);
     }
 
-    private void handleDelete(HttpExchange exchange, User user) {
-        var maybeTaskId = getTaskUuid(exchange);
-        if (maybeTaskId.isPresent()) {
-            deleteTask(exchange, user, maybeTaskId.get());
-        } else {
-            response(exchange, BAD_REQUEST, "Valid task id in path is required");
+    private HandlerResponse handleDelete(String path, User user) {
+        var maybeTaskId = getTaskId(path);
+
+        if (maybeTaskId.isEmpty()) {
+            throw new BadRequestException("Valid task id in path is required");
         }
+
+        service.removeTask(user, maybeTaskId.get());
+        return okResponse();
     }
 
-    private Optional<Task> getTask(HttpExchange exchange) {
-        var task = getBody(exchange, Task.class);
-        LOGGER.fine("Request body:" + task);
+    private Task decodeAndValidateTask(String body) {
+        if (isBlank(body)) {
+            throw new BadRequestException("Body is required");
+        }
 
-        if (isNull(task)) {
-            response(exchange, BAD_REQUEST, "Body is required");
-            return Optional.empty();
+        Task task = null;
+        try {
+            task = gson.fromJson(body, Task.class);
+        } catch (JsonSyntaxException e) {
+            throw new BadRequestException("Invalid task in body", e);
         }
 
         if (isBlank(task.getDescription())) {
-            response(exchange, BAD_REQUEST, "description is required");
-            return Optional.empty();
+            throw new BadRequestException("description is required");
         }
 
-        return Optional.of(task);
+        return task;
     }
 
-    private Optional<UUID> getTaskUuid(HttpExchange exchange) {
-        var matcher = pattern.matcher(exchange.getRequestURI().getPath());
+    private Optional<UUID> getTaskId(String path) {
+        var matcher = pattern.matcher(path);
         var matches = matcher.matches();
         if (!matches) {
             return Optional.empty();
         }
 
-        var taskId = matcher.group("taskId");
+        var taskId = matcher.group(TASK_ID_GROUP);
         try {
             var uuid = UUID.fromString(taskId);
             return Optional.of(uuid);
         } catch (Exception e) {
-            LOGGER.severe(e.getLocalizedMessage());
-            return Optional.empty();
+            throw new BadRequestException(String.format("'%s' is not valid UUID", taskId), e);
         }
-    }
-
-    private void loadTask(HttpExchange exchange, User user, UUID taskId) {
-        var task = service.findTask(user, taskId);
-
-        var responseBody = gson.toJson(task);
-        response(exchange, OK, responseBody);
-    }
-
-    private void loadTasks(HttpExchange exchange, User user) {
-        var tasks = service.findTasks(user);
-        var responseBody = gson.toJson(tasks);
-        response(exchange, OK, responseBody);
-    }
-
-    private void updateTask(HttpExchange exchange, User user, UUID taskId, Task task) {
-        var updatedTask = service.updateTask(user, taskId, task);
-
-        var responseBody = gson.toJson(updatedTask);
-        response(exchange, OK, responseBody);
-    }
-
-    private void deleteTask(HttpExchange exchange, User user, UUID taskId) {
-        var uuidOfRemovedTask = service.removeTask(user, taskId);
-
-        response(exchange, OK);
     }
 }

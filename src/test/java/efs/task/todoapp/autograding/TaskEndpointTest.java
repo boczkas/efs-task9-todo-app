@@ -9,7 +9,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -18,9 +17,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static efs.task.todoapp.autograding.TestUtil.HEADER_AUTH;
-import static efs.task.todoapp.autograding.TestUtil.PATH_TASK;
-import static efs.task.todoapp.autograding.TestUtil.PATH_USER;
 import static efs.task.todoapp.autograding.TestUtil.taskJson;
+import static efs.task.todoapp.autograding.TestUtil.taskRequestBuilder;
 import static efs.task.todoapp.autograding.TestUtil.userJson;
 import static efs.task.todoapp.web.HttpStatus.BAD_REQUEST;
 import static efs.task.todoapp.web.HttpStatus.CREATED;
@@ -35,6 +33,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TaskEndpointTest {
 
     private static final UUID UUID = java.util.UUID.randomUUID();
+    private static final String BASE_64_USERNAME = "dXNlcm5hbWU=";
+    private static final String BASE_64_USERNAME_2 = "dXNlcm5hbWUy";
+    private static final String BASE_64_PASSWORD = "cGFzc3dvcmQ=";
+
     private HttpClient httpClient;
 
     @BeforeEach
@@ -44,73 +46,87 @@ class TaskEndpointTest {
 
     private static Stream<HttpRequest.Builder> badRequests() {
         return Stream.of(
+                // Missing or bad auth header
                 taskRequestBuilder()
                         .POST(ofString(taskJson("task"))),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME)
                         .POST(ofString(taskJson("task"))),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "dummy:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
                         .POST(ofString(taskJson("task"))),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:dummy")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":dummy")
                         .POST(ofString(taskJson("task"))),
                 taskRequestBuilder()
                         .GET(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME)
                         .GET(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "dummy:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
                         .GET(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:dummy")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":dummy")
                         .GET(),
                 taskRequestBuilder(UUID)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dummy:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:dummy")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":dummy")
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder()
                         .DELETE(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME)
                         .DELETE(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "dummy:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
                         .DELETE(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:dummy")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":dummy")
                         .DELETE(),
+
+                // Missing or bad task body
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .POST(ofString("")),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .POST(ofString(taskJson(null))),
+                taskRequestBuilder()
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
+                        .POST(ofString(taskJson("buy milk", "not-a-date"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .PUT(ofString("")),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson(null))),
+                taskRequestBuilder(UUID)
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
+                        .PUT(ofString(taskJson("buy milk", "not-a-date"))),
+
+                //Missing or invalid task id in path
+                taskRequestBuilder("123")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
+                        .GET(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder("123")
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .DELETE(),
                 taskRequestBuilder("123")
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .DELETE()
         );
     }
@@ -131,34 +147,34 @@ class TaskEndpointTest {
     private static Stream<HttpRequest.Builder> unauthorizedRequests() {
         return Stream.of(
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .POST(ofString(taskJson("task"))),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .POST(ofString(taskJson("task"))),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .GET(),
                 taskRequestBuilder()
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .GET(),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .GET(),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .GET(),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "amFuS293YWxza2k=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH,  BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .DELETE(),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:YW0hc0sjMTIz")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .DELETE()
         );
     }
@@ -168,7 +184,7 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldReturnUnauthorizedStatus(HttpRequest.Builder httpRequestBuilder) throws IOException, InterruptedException {
         //given
-        var userRequest = userRequestBuilder()
+        var userRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
@@ -184,13 +200,15 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldCreateTask() throws IOException, InterruptedException {
         //given
-        var userRequest = userRequestBuilder()
+        var userRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         var postTaskRequest = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME +
+                        ":" +
+                        BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
 
@@ -206,36 +224,42 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldReturnAllTasksForUser() throws IOException, InterruptedException {
         //given
-        var user1Request = userRequestBuilder()
+        var user1Request = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(user1Request, HttpResponse.BodyHandlers.ofString());
 
-        var user2Request = userRequestBuilder()
+        var user2Request = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username2", "password")))
                 .build();
         httpClient.send(user2Request, HttpResponse.BodyHandlers.ofString());
 
         var postTaskForUser1Request = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME +
+                        ":" +
+                        BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
         httpClient.send(postTaskForUser1Request, HttpResponse.BodyHandlers.ofString());
 
         postTaskForUser1Request = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME +
+                        ":" +
+                        BASE_64_PASSWORD)
                 .POST(ofString(taskJson("eat an apple")))
                 .build();
         httpClient.send(postTaskForUser1Request, HttpResponse.BodyHandlers.ofString());
 
         var postTaskForUser2Request = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWUy:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
         httpClient.send(postTaskForUser2Request, HttpResponse.BodyHandlers.ofString());
 
         var getForUser1Request = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME +
+                        ":" +
+                        BASE_64_PASSWORD)
                 .GET()
                 .build();
 
@@ -255,20 +279,20 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldReturnTask() throws IOException, InterruptedException {
         //given
-        var userRequest = userRequestBuilder()
+        var userRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         var postTaskRequest = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
         var postTaskResponse = httpClient.send(postTaskRequest, HttpResponse.BodyHandlers.ofString());
         var taskId = getIdOfCreatedTask(postTaskResponse);
 
         var getRequest = taskRequestBuilder(taskId)
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .GET()
                 .build();
 
@@ -288,13 +312,13 @@ class TaskEndpointTest {
     private static Stream<HttpRequest.Builder> notFoundRequests() {
         return Stream.of(
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .GET(),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("task"))),
                 taskRequestBuilder(UUID)
-                        .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                         .DELETE()
         );
     }
@@ -304,7 +328,7 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldReturnNotFound(HttpRequest.Builder httpRequestBuilder) throws IOException, InterruptedException {
         //given
-        var userRequest = userRequestBuilder()
+        var userRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
@@ -319,13 +343,13 @@ class TaskEndpointTest {
     private static Stream<Function<String, HttpRequest.Builder>> forbiddenRequests() {
         return Stream.of(
                 taskId -> taskRequestBuilder(taskId)
-                        .header(HEADER_AUTH, "dXNlcm5hbWUy:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .GET(),
                 taskId -> taskRequestBuilder(taskId)
-                        .header(HEADER_AUTH, "dXNlcm5hbWUy:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .PUT(ofString(taskJson("eat an apple"))),
                 taskId -> taskRequestBuilder(taskId)
-                        .header(HEADER_AUTH, "dXNlcm5hbWUy:cGFzc3dvcmQ=")
+                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
                         .DELETE()
         );
     }
@@ -335,18 +359,18 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldReturnForbiddenStatus(Function<String, HttpRequest.Builder> requestBuilderForUser2Function) throws IOException, InterruptedException {
         //given
-        var user1Request = userRequestBuilder()
+        var user1Request = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(user1Request, HttpResponse.BodyHandlers.ofString());
 
-        var user2Request = userRequestBuilder()
+        var user2Request = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username2", "password")))
                 .build();
         httpClient.send(user2Request, HttpResponse.BodyHandlers.ofString());
 
         var postTaskForUser1Request = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
         var postTaskForUser1Response = httpClient.send(postTaskForUser1Request, HttpResponse.BodyHandlers.ofString());
@@ -365,24 +389,24 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldUpdateTask() throws IOException, InterruptedException {
         //given
-        var userRequest = userRequestBuilder()
+        var userRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         var postTaskRequest = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
         var postTaskResponse = httpClient.send(postTaskRequest, HttpResponse.BodyHandlers.ofString());
         var taskId = getIdOfCreatedTask(postTaskResponse);
 
         var putRequest = taskRequestBuilder(taskId)
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .PUT(ofString(taskJson("eat an apple")))
                 .build();
         var getRequest = taskRequestBuilder(taskId)
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .GET()
                 .build();
 
@@ -409,24 +433,24 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldDeleteTask() throws IOException, InterruptedException {
         //given
-        var userRequest = userRequestBuilder()
+        var userRequest = TestUtil.userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         var postTaskRequest = taskRequestBuilder()
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .POST(ofString(taskJson("buy milk", "2021-06-30")))
                 .build();
         var postTaskResponse = httpClient.send(postTaskRequest, HttpResponse.BodyHandlers.ofString());
         var taskId = getIdOfCreatedTask(postTaskResponse);
 
         var deleteRequest = taskRequestBuilder(taskId)
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .DELETE()
                 .build();
         var getRequest = taskRequestBuilder(taskId)
-                .header(HEADER_AUTH, "dXNlcm5hbWU=:cGFzc3dvcmQ=")
+                .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
                 .GET()
                 .build();
 
@@ -437,18 +461,6 @@ class TaskEndpointTest {
         //then
         assertThat(deleteResponse.statusCode()).as("Delete response status code").isEqualTo(OK.getCode());
         assertThat(getResponse.statusCode()).as("Get response status code").isEqualTo(NOT_FOUND.getCode());
-    }
-
-    private static HttpRequest.Builder taskRequestBuilder() {
-        return HttpRequest.newBuilder(URI.create(PATH_TASK));
-    }
-
-    private static HttpRequest.Builder taskRequestBuilder(Object taskId) {
-        return HttpRequest.newBuilder(URI.create(PATH_TASK + "/" + taskId.toString()));
-    }
-
-    private static HttpRequest.Builder userRequestBuilder() {
-        return HttpRequest.newBuilder(URI.create(PATH_USER));
     }
 
     private String getIdOfCreatedTask(HttpResponse<String> taskResponse) {
