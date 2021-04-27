@@ -5,4 +5,5 @@ mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file \
   -DgroupId=efs -DartifactId=efs-task9-todo-app.tests \
   -Dversion=1.1.0-SNAPSHOT -Dclassifier=tests \
   -Dpackaging=test-jar \
+  -DcreateChecksum=true \
   -DlocalRepositoryPath=./docs/repo
