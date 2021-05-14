@@ -16,3 +16,7 @@ mv ./docs/repo/efs/efs-task9-todo-app.tests/maven-metadata-local.xml.sha1 ./docs
 rm ./docs/repo/efs/efs-task9-todo-app.tests/1.1.0-SNAPSHOT/maven-metadata-local.xml
 rm ./docs/repo/efs/efs-task9-todo-app.tests/1.1.0-SNAPSHOT/maven-metadata-local.xml.md5
 rm ./docs/repo/efs/efs-task9-todo-app.tests/1.1.0-SNAPSHOT/maven-metadata-local.xml.sha1
+
+cp ./docs/repo/efs/efs-task9-todo-app.tests/maven-metadata.xml ./docs/repo/efs/efs-task9-todo-app.tests/1.1.0-SNAPSHOT/maven-metadata.xml
+cp ./docs/repo/efs/efs-task9-todo-app.tests/maven-metadata.xml.md5 ./docs/repo/efs/efs-task9-todo-app.tests/1.1.0-SNAPSHOT/maven-metadata.xml.md5
+cp ./docs/repo/efs/efs-task9-todo-app.tests/maven-metadata.xml.sha1 ./docs/repo/efs/efs-task9-todo-app.tests/1.1.0-SNAPSHOT/maven-metadata.xml.sha1
