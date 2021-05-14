@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.util.stream.Stream;
 
 import static efs.task.todoapp.autograding.TestUtils.userJson;
+import static efs.task.todoapp.autograding.TestUtils.wrongCodeMessage;
 import static efs.task.todoapp.autograding.HttpResonseStatus.BAD_REQUEST;
 import static efs.task.todoapp.autograding.HttpResonseStatus.CONFLICT;
 import static efs.task.todoapp.autograding.HttpResonseStatus.CREATED;
@@ -39,7 +40,7 @@ class UserEndpointTest {
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Request body = {0}")
     @MethodSource("badRequestBody")
     @Timeout(1)
     void shouldReturnBadRequestStatus(String body) throws IOException, InterruptedException {
@@ -52,7 +53,7 @@ class UserEndpointTest {
         var httpResponse = httpClient.send(httpRequest, ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(BAD_REQUEST.getCode());
+        assertThat(httpResponse.statusCode()).as(() -> wrongCodeMessage(httpRequest)).isEqualTo(BAD_REQUEST.getCode());
     }
 
     @Test
@@ -67,7 +68,7 @@ class UserEndpointTest {
         var httpResponse = httpClient.send(httpRequest, ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(CREATED.getCode());
+        assertThat(httpResponse.statusCode()).as(() -> wrongCodeMessage(httpRequest)).isEqualTo(CREATED.getCode());
     }
 
     @Test
@@ -84,6 +85,8 @@ class UserEndpointTest {
         var httpResponse = httpClient.send(httpRequest, ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(CONFLICT.getCode());
+        assertThat(httpResponse.statusCode())
+                .as(() -> "Creation of a user with the existing username. " + wrongCodeMessage(httpRequest))
+                .isEqualTo(CONFLICT.getCode());
     }
 }

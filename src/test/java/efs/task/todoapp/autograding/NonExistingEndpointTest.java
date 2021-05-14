@@ -39,6 +39,6 @@ class NonExistingEndpointTest {
         var httpResponse = httpClient.send(httpRequest, ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(NOT_FOUND.getCode());
+        assertThat(httpResponse.statusCode()).as("Wrong HTTP status code for non existing endpoint").isEqualTo(NOT_FOUND.getCode());
     }
 }

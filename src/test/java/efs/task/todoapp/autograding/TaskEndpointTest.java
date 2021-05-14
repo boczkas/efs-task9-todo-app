@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
@@ -16,14 +17,21 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static efs.task.todoapp.autograding.TestUtils.HEADER_AUTH;
+import static efs.task.todoapp.autograding.TestUtils.taskDeleteArguments;
+import static efs.task.todoapp.autograding.TestUtils.taskGetArguments;
 import static efs.task.todoapp.autograding.TestUtils.taskJson;
+import static efs.task.todoapp.autograding.TestUtils.taskPostArguments;
+import static efs.task.todoapp.autograding.TestUtils.taskPutArguments;
 import static efs.task.todoapp.autograding.TestUtils.taskRequestBuilder;
 import static efs.task.todoapp.autograding.TestUtils.userJson;
+import static efs.task.todoapp.autograding.TestUtils.userRequestBuilder;
 import static efs.task.todoapp.autograding.TestUtils.validUUID;
+import static efs.task.todoapp.autograding.TestUtils.wrongCodeMessage;
 import static efs.task.todoapp.autograding.HttpResonseStatus.BAD_REQUEST;
 import static efs.task.todoapp.autograding.HttpResonseStatus.CREATED;
 import static efs.task.todoapp.autograding.HttpResonseStatus.FORBIDDEN;
@@ -32,6 +40,8 @@ import static efs.task.todoapp.autograding.HttpResonseStatus.OK;
 import static efs.task.todoapp.autograding.HttpResonseStatus.UNAUTHORIZED;
 import static java.net.http.HttpRequest.BodyPublishers.ofString;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.skyscreamer.jsonassert.JSONAssert.assertEquals;
 import static org.skyscreamer.jsonassert.JSONCompareMode.STRICT;
 
@@ -51,104 +61,91 @@ class TaskEndpointTest {
         httpClient = HttpClient.newHttpClient();
     }
 
-    private static Stream<HttpRequest.Builder> badRequests() {
+    private static Stream<Arguments> authHeaderBadRequests() {
         return Stream.of(
-                // Missing or bad auth header
-                taskRequestBuilder()
-                        .POST(ofString(taskJson("task"))),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME)
-                        .POST(ofString(taskJson("task"))),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
-                        .POST(ofString(taskJson("task"))),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":dummy")
-                        .POST(ofString(taskJson("task"))),
-                taskRequestBuilder()
-                        .GET(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME)
-                        .GET(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
-                        .GET(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":dummy")
-                        .GET(),
-                taskRequestBuilder(ID)
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME)
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":dummy")
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder()
-                        .DELETE(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME)
-                        .DELETE(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, "dummy:" + BASE_64_PASSWORD)
-                        .DELETE(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":dummy")
-                        .DELETE(),
-
-                // Missing or bad task body
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .POST(ofString("")),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .POST(ofString(taskJson(null))),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .POST(ofString(taskJson("buy milk", "not-a-date"))),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString("")),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson(null))),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson("buy milk", "not-a-date"))),
-
-                // Missing or invalid task id in path
-                taskRequestBuilder("123")
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .GET(),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder("123")
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder()
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .DELETE(),
-                taskRequestBuilder("123")
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .DELETE()
-        );
+                taskPostArguments(null, taskJson("task")),
+                taskPostArguments(BASE_64_USERNAME, taskJson("task")),
+                taskPostArguments("dummy:" + BASE_64_PASSWORD, taskJson("task")),
+                taskPostArguments(BASE_64_USERNAME + ":dummy", taskJson("task")),
+                taskGetArguments(null),
+                taskGetArguments(BASE_64_USERNAME),
+                taskGetArguments("dummy:" + BASE_64_PASSWORD),
+                taskGetArguments(BASE_64_USERNAME + ":dummy"),
+                taskPutArguments(null, taskJson("task")),
+                taskPutArguments(BASE_64_USERNAME, taskJson("task")),
+                taskPutArguments("dummy:" + BASE_64_PASSWORD, taskJson("task")),
+                taskPutArguments(BASE_64_USERNAME + ":dummy", taskJson("task")),
+                taskDeleteArguments(null),
+                taskDeleteArguments(BASE_64_USERNAME),
+                taskDeleteArguments("dummy:" + BASE_64_PASSWORD),
+                taskDeleteArguments(BASE_64_USERNAME + ":dummy")
+        ).map(Arguments::get)
+                .map(objects -> Arguments.of("Wrong or missing auth header", objects[0], objects[1]));
     }
 
-    @ParameterizedTest
-    @MethodSource("badRequests")
+    private static Stream<Arguments> taskBodyBadRequests() {
+        return Stream.of(
+                taskPostArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, ""),
+                taskPostArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson(null)),
+                taskPostArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson("buy milk", "not-a-date")),
+                taskPutArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, ""),
+                taskPutArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson(null)),
+                taskPutArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson("buy milk", "not-a-date"))
+        ).map(Arguments::get)
+                .map(objects -> Arguments.of("Wrong or missing task body", objects[0], objects[1]));
+    }
+
+    private static Stream<Arguments> taskPathBadRequests() {
+        return Stream.of(
+                taskGetArguments("123", BASE_64_USERNAME + ":" + BASE_64_PASSWORD),
+                taskPutArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson("task")),
+                taskPutArguments("123", BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson("task")),
+                taskDeleteArguments(BASE_64_USERNAME + ":" + BASE_64_PASSWORD),
+                taskDeleteArguments("123", BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
+        ).map(Arguments::get)
+                .map(objects -> Arguments.of("Wrong or missing task path", objects[0], objects[1]));
+    }
+
+    @ParameterizedTest(name = "{1}")
+    @MethodSource({"authHeaderBadRequests", "taskBodyBadRequests", "taskPathBadRequests"})
     @Timeout(1)
-    void shouldReturnBadRequestStatus(HttpRequest.Builder httpRequestBuilder) throws IOException, InterruptedException {
+    void shouldReturnBadRequestStatus(String testPrefix, String testName, HttpRequest taskRequest) throws IOException, InterruptedException {
         //given
+        var userRequest = userRequestBuilder()
+                .POST(ofString(userJson("username", "password")))
+                .build();
+        httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         //when
-        var httpResponse = httpClient.send(httpRequestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        var httpResponse = httpClient.send(taskRequest, HttpResponse.BodyHandlers.ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(BAD_REQUEST.getCode());
+        assertThat(httpResponse.statusCode())
+                .as(() -> "[" + testPrefix + " : " + testName + "] " + wrongCodeMessage(taskRequest))
+                .isEqualTo(BAD_REQUEST.getCode());
+    }
+
+    private static Stream<Arguments> wrongUsernameUnauthorizedRequests() {
+        return Stream.of(
+                taskPostArguments(BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD, taskJson("task")),
+                taskGetArguments(BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD),
+                taskGetArguments(ID, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD),
+                taskPutArguments(ID, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD, taskJson("task")),
+                taskDeleteArguments(ID, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
+
+        ).map(Arguments::get)
+                .map(objects -> Arguments.of("Wrong username", objects[0], objects[1]));
+    }
+
+    private static Stream<Arguments> wrongPasswordUnauthorizedRequests() {
+        return Stream.of(
+                taskPostArguments(BASE_64_USERNAME + ":" + BASE_64_WRONG_PASSWORD, taskJson("task")),
+                taskGetArguments(BASE_64_USERNAME_2 + ":" + BASE_64_WRONG_PASSWORD),
+                taskGetArguments(ID, BASE_64_USERNAME_2 + ":" + BASE_64_WRONG_PASSWORD),
+                taskPutArguments(ID, BASE_64_USERNAME_2 + ":" + BASE_64_WRONG_PASSWORD, taskJson("task")),
+                taskDeleteArguments(ID, BASE_64_USERNAME_2 + ":" + BASE_64_WRONG_PASSWORD)
+        ).map(Arguments::get)
+                .map(objects -> Arguments.of("Wrong password", objects[0], objects[1]));
     }
 
     private static Stream<HttpRequest.Builder> unauthorizedRequests() {
@@ -189,28 +186,30 @@ class TaskEndpointTest {
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("unauthorizedRequests")
+    @ParameterizedTest(name = "{1}")
+    @MethodSource({"wrongUsernameUnauthorizedRequests", "wrongPasswordUnauthorizedRequests"})
     @Timeout(1)
-    void shouldReturnUnauthorizedStatus(HttpRequest.Builder httpRequestBuilder) throws IOException, InterruptedException {
+    void shouldReturnUnauthorizedStatus(String testPrefix, String testName, HttpRequest taskRequest) throws IOException, InterruptedException {
         //given
-        var userRequest = TestUtils.userRequestBuilder()
+        var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         //when
-        var httpResponse = httpClient.send(httpRequestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        var httpResponse = httpClient.send(taskRequest, HttpResponse.BodyHandlers.ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(UNAUTHORIZED.getCode());
+        assertThat(httpResponse.statusCode())
+                .as(() -> "[" + testPrefix + " : " + testName + "] " + wrongCodeMessage(taskRequest))
+                .isEqualTo(UNAUTHORIZED.getCode());
     }
 
     @Test
     @Timeout(1)
     void shouldCreateTask() throws IOException, InterruptedException, JSONException {
         //given
-        var userRequest = TestUtils.userRequestBuilder()
+        var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
@@ -224,23 +223,27 @@ class TaskEndpointTest {
 
         //when
         var postTaskResponse = httpClient.send(postTaskRequest, HttpResponse.BodyHandlers.ofString());
-        var jsonResponse = new JSONObject(postTaskResponse.body());
 
         //then
-        assertThat(postTaskResponse.statusCode()).as("Response status code").isEqualTo(CREATED.getCode());
-        assertThat(jsonResponse.getString("id")).as("Identifier in response").is(validUUID());
+        assertAll(
+                () -> assertThat(postTaskResponse.statusCode()).as(wrongCodeMessage(postTaskRequest)).isEqualTo(CREATED.getCode()),
+                () -> {
+                    var jsonResponse = getJsonFromResponse(postTaskResponse);
+                    assertThat(jsonResponse.getString("id")).as("Wrong task identifier in response").is(validUUID());
+                }
+        );
     }
 
     @Test
     @Timeout(1)
     void shouldReturnAllTasksForUser() throws IOException, InterruptedException, JSONException {
         //given
-        var user1Request = TestUtils.userRequestBuilder()
+        var user1Request = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(user1Request, HttpResponse.BodyHandlers.ofString());
 
-        var user2Request = TestUtils.userRequestBuilder()
+        var user2Request = userRequestBuilder()
                 .POST(ofString(userJson("username2", "password")))
                 .build();
         httpClient.send(user2Request, HttpResponse.BodyHandlers.ofString());
@@ -278,30 +281,30 @@ class TaskEndpointTest {
 
         //when
         var getForUser1Response = httpClient.send(getForUser1Request, HttpResponse.BodyHandlers.ofString());
-        var jsonTasks = new JSONArray(getForUser1Response.body());
 
         //then
-        assertThat(getForUser1Response.statusCode()).as("Response status code").isEqualTo(OK.getCode());
-
-        assertThat(jsonTasks.length()).as("Number of tasks").isEqualTo(2);
-
+        var jsonTasks = new JSONArray(getForUser1Response.body());
         var sortedTasks = sortJsonTasks(task1Id, jsonTasks);
 
-        assertEquals("Task in response",
-                "{" +
-                        "\"id\" : \"" + task1Id + "\"," +
-                        "\"description\" : \"buy milk\"," +
-                        "\"due\" : \"2021-06-30\"" +
-                        "}",
-                sortedTasks[0],
-                STRICT);
-        assertEquals("Task in response",
-                "{" +
-                        "\"id\" : \"" + task2Id + "\"," +
-                        "\"description\" : \"eat an apple\"" +
-                        "}",
-                sortedTasks[1],
-                STRICT);
+        assertAll(
+                () -> assertThat(getForUser1Response.statusCode()).as(wrongCodeMessage(getForUser1Request)).isEqualTo(OK.getCode()),
+                () -> assertThat(jsonTasks.length()).as("Number of tasks").isEqualTo(2),
+                () -> assertEquals("Wrong task in response : ",
+                        "{" +
+                                "\"id\" : \"" + task1Id + "\"," +
+                                "\"description\" : \"buy milk\"," +
+                                "\"due\" : \"2021-06-30\"" +
+                                "}",
+                        sortedTasks[0],
+                        STRICT),
+                () -> assertEquals("Wrong task in response : ",
+                        "{" +
+                                "\"id\" : \"" + task2Id + "\"," +
+                                "\"description\" : \"eat an apple\"" +
+                                "}",
+                        sortedTasks[1],
+                        STRICT)
+        );
     }
 
     private JSONObject[] sortJsonTasks(String task1Id, JSONArray jsonTasks) throws JSONException {
@@ -325,7 +328,7 @@ class TaskEndpointTest {
     @Timeout(1)
     void shouldReturnTask() throws IOException, InterruptedException, JSONException {
         //given
-        var userRequest = TestUtils.userRequestBuilder()
+        var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
@@ -344,77 +347,76 @@ class TaskEndpointTest {
 
         //when
         var getResponse = httpClient.send(getRequest, HttpResponse.BodyHandlers.ofString());
-        var jsonTask = new JSONObject(getResponse.body());
+        var jsonTask = getJsonFromResponse(getResponse);
 
         //then
-        assertThat(getResponse.statusCode()).as("Response status code").isEqualTo(OK.getCode());
-
-        assertEquals("Task in response",
-                "{" +
-                        "\"id\" : \"" + taskId + "\"," +
-                        "\"description\" : \"buy milk\"," +
-                        "\"due\" : \"2021-06-30\"" +
-                        "}",
-                jsonTask,
-                STRICT);
-    }
-
-    private static Stream<HttpRequest.Builder> notFoundRequests() {
-        return Stream.of(
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .GET(),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson("task"))),
-                taskRequestBuilder(ID)
-                        .header(HEADER_AUTH, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
-                        .DELETE()
+        assertAll(
+                () -> assertThat(getResponse.statusCode()).as(wrongCodeMessage(getRequest)).isEqualTo(OK.getCode()),
+                () -> assertEquals("Wrong task in response : ",
+                        "{" +
+                                "\"id\" : \"" + taskId + "\"," +
+                                "\"description\" : \"buy milk\"," +
+                                "\"due\" : \"2021-06-30\"" +
+                                "}",
+                        jsonTask,
+                        STRICT)
         );
     }
 
-    @ParameterizedTest
+    private static Stream<Arguments> notFoundRequests() {
+        return Stream.of(
+                taskGetArguments(ID, BASE_64_USERNAME + ":" + BASE_64_PASSWORD),
+                taskPutArguments(ID, BASE_64_USERNAME + ":" + BASE_64_PASSWORD, taskJson("task")),
+                taskDeleteArguments(ID, BASE_64_USERNAME + ":" + BASE_64_PASSWORD)
+        ).map(Arguments::get)
+                .map(objects -> Arguments.of("Task not found", objects[0], objects[1]));
+    }
+
+    @ParameterizedTest(name = "{1}")
     @MethodSource("notFoundRequests")
     @Timeout(1)
-    void shouldReturnNotFound(HttpRequest.Builder httpRequestBuilder) throws IOException, InterruptedException {
+    void shouldReturnNotFound(String testPrefix, String testName, HttpRequest taskRequest) throws IOException, InterruptedException {
         //given
-        var userRequest = TestUtils.userRequestBuilder()
+        var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
 
         //when
-        var httpResponse = httpClient.send(httpRequestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        var httpResponse = httpClient.send(taskRequest, HttpResponse.BodyHandlers.ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(NOT_FOUND.getCode());
+        assertThat(httpResponse.statusCode())
+                .as(() -> "[" + testPrefix + " : " + testName + "] " + wrongCodeMessage(taskRequest))
+                .isEqualTo(NOT_FOUND.getCode());
     }
 
-    private static Stream<Function<String, HttpRequest.Builder>> forbiddenRequests() {
-        return Stream.of(
-                taskId -> taskRequestBuilder(taskId)
-                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
-                        .GET(),
-                taskId -> taskRequestBuilder(taskId)
-                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
-                        .PUT(ofString(taskJson("eat an apple"))),
-                taskId -> taskRequestBuilder(taskId)
-                        .header(HEADER_AUTH, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD)
-                        .DELETE()
-        );
+    private static Stream<Arguments> forbiddenRequests() {
+        return Stream.<BiFunction<String, String, HttpRequest>>of(
+                (taskId, authHeader) -> (HttpRequest) taskGetArguments(taskId, authHeader).get()[1],
+                (taskId, authHeader) -> (HttpRequest) taskPutArguments(taskId, authHeader, taskJson("eat an apple")).get()[1],
+                (taskId, authHeader) -> (HttpRequest) taskDeleteArguments(taskId, authHeader).get()[1]
+        ).map(biFunction -> {
+            var testName = HEADER_AUTH + " = " + BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD;
+            return Arguments.of("Access forbidden",
+                    testName,
+                    (Function<String, HttpRequest>) taskId -> biFunction.apply(taskId, BASE_64_USERNAME_2 + ":" + BASE_64_PASSWORD));
+        });
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{1}")
     @MethodSource("forbiddenRequests")
     @Timeout(1)
-    void shouldReturnForbiddenStatus(Function<String, HttpRequest.Builder> requestBuilderForUser2Function) throws IOException, InterruptedException {
+    void shouldReturnForbiddenStatus(String testPrefix,
+                                     String testName,
+                                     Function<String, HttpRequest> requestForUser2Function) throws IOException, InterruptedException {
         //given
-        var user1Request = TestUtils.userRequestBuilder()
+        var user1Request = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(user1Request, HttpResponse.BodyHandlers.ofString());
 
-        var user2Request = TestUtils.userRequestBuilder()
+        var user2Request = userRequestBuilder()
                 .POST(ofString(userJson("username2", "password")))
                 .build();
         httpClient.send(user2Request, HttpResponse.BodyHandlers.ofString());
@@ -426,20 +428,22 @@ class TaskEndpointTest {
         var postTaskForUser1Response = httpClient.send(postTaskForUser1Request, HttpResponse.BodyHandlers.ofString());
         var taskId = getIdOfCreatedTask(postTaskForUser1Response);
 
-        var httpRequest = requestBuilderForUser2Function.apply(taskId).build();
+        var httpRequest = requestForUser2Function.apply(taskId);
 
         //when
         var httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
         //then
-        assertThat(httpResponse.statusCode()).as("Response status code").isEqualTo(FORBIDDEN.getCode());
+        assertThat(httpResponse.statusCode())
+                .as(() -> "[" + testPrefix + " : " + testName + "] " + wrongCodeMessage(httpRequest))
+                .isEqualTo(FORBIDDEN.getCode());
     }
 
     @Test
     @Timeout(1)
     void shouldUpdateTask() throws IOException, InterruptedException, JSONException {
         //given
-        var userRequest = TestUtils.userRequestBuilder()
+        var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
@@ -465,29 +469,31 @@ class TaskEndpointTest {
         var getResponse = httpClient.send(getRequest, HttpResponse.BodyHandlers.ofString());
 
         //then
-        assertThat(putResponse.statusCode()).as("Put response status code").isEqualTo(OK.getCode());
-        assertEquals("Put response body",
-                "{" +
-                        "\"id\" : \"" + taskId + "\"," +
-                        "\"description\" : \"eat an apple\"" +
-                        "}",
-                putResponse.body(),
-                STRICT);
-        assertThat(getResponse.statusCode()).as("Get response status code").isEqualTo(OK.getCode());
-        assertEquals("Get response body",
-                "{" +
-                        "\"id\" : \"" + taskId + "\"," +
-                        "\"description\" : \"eat an apple\"" +
-                        "}",
-                putResponse.body(),
-                STRICT);
+        assertAll(
+                () -> assertThat(putResponse.statusCode()).as(wrongCodeMessage(putRequest)).isEqualTo(OK.getCode()),
+                () -> assertThat(getResponse.statusCode()).as(wrongCodeMessage(getRequest)).isEqualTo(OK.getCode()),
+                () -> assertEquals("Wrong task in response : ",
+                        "{" +
+                                "\"id\" : \"" + taskId + "\"," +
+                                "\"description\" : \"eat an apple\"" +
+                                "}",
+                        putResponse.body(),
+                        STRICT),
+                () -> assertEquals("Wrong task in response : ",
+                        "{" +
+                                "\"id\" : \"" + taskId + "\"," +
+                                "\"description\" : \"eat an apple\"" +
+                                "}",
+                        putResponse.body(),
+                        STRICT)
+        );
     }
 
     @Test
     @Timeout(1)
     void shouldDeleteTask() throws IOException, InterruptedException {
         //given
-        var userRequest = TestUtils.userRequestBuilder()
+        var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
                 .build();
         httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
@@ -513,11 +519,27 @@ class TaskEndpointTest {
         var getResponse = httpClient.send(getRequest, HttpResponse.BodyHandlers.ofString());
 
         //then
-        assertThat(deleteResponse.statusCode()).as("Delete response status code").isEqualTo(OK.getCode());
-        assertThat(getResponse.statusCode()).as("Get response status code").isEqualTo(NOT_FOUND.getCode());
+        assertAll(
+                () -> assertThat(deleteResponse.statusCode()).as(wrongCodeMessage(deleteRequest)).isEqualTo(OK.getCode()),
+                () -> assertThat(getResponse.statusCode()).as(wrongCodeMessage(getRequest)).isEqualTo(NOT_FOUND.getCode())
+        );
     }
 
     private String getIdOfCreatedTask(HttpResponse<String> taskResponse) {
-        return taskResponse.body().split("\"")[3];
+        try {
+            return taskResponse.body().split("\"")[3];
+        } catch (Exception e) {
+            fail("Can't get id of created task", e);
+            return null;
+        }
+    }
+
+    private JSONObject getJsonFromResponse(HttpResponse<String> response) throws JSONException {
+        try {
+            return new JSONObject(response.body());
+        } catch (JSONException e) {
+            fail("Can't serialize a response to JSON format", e);
+            return null;
+        }
     }
 }
