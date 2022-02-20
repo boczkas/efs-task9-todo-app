@@ -107,9 +107,28 @@ class TaskEndpointTest {
     }
 
     @ParameterizedTest(name = "{1}")
-    @MethodSource({"authHeaderBadRequests", "taskBodyBadRequests", "taskPathBadRequests"})
+    @MethodSource({"taskBodyBadRequests", "taskPathBadRequests"})
     @Timeout(1)
     void shouldReturnBadRequestStatus(String testPrefix, String testName, HttpRequest taskRequest) throws IOException, InterruptedException {
+        //given
+        var userRequest = userRequestBuilder()
+                .POST(ofString(userJson("username", "password")))
+                .build();
+        httpClient.send(userRequest, HttpResponse.BodyHandlers.ofString());
+
+        //when
+        var httpResponse = httpClient.send(taskRequest, HttpResponse.BodyHandlers.ofString());
+
+        //then
+        assertThat(httpResponse.statusCode())
+                .as(() -> "[" + testPrefix + " : " + testName + "] " + wrongCodeMessage(taskRequest))
+                .isEqualTo(BAD_REQUEST.getCode());
+    }
+
+    @ParameterizedTest(name = "{1}")
+    @MethodSource({"authHeaderBadRequests"})
+    @Timeout(1)
+    void shouldReturnBadRequestStatusAuth(String testPrefix, String testName, HttpRequest taskRequest) throws IOException, InterruptedException {
         //given
         var userRequest = userRequestBuilder()
                 .POST(ofString(userJson("username", "password")))
