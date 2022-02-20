@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ExampleEndpointTest {
 
     public static final int NOT_FOUND = 404;
-    public static final String TODO_APP_PATH = "http://localhost:8080/todo/";
+    public static final String TODO_APP_PATH = "http://localhost:8081/todo/";
 
     private HttpClient httpClient;
 

@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import static java.util.Objects.nonNull;
 
 public final class TestUtil {
-    static final String PATH_ROOT = "http://localhost:8080/todo";
+    static final String PATH_ROOT = "http://localhost:8081/todo";
     static final String PATH_USER = PATH_ROOT + "/user";
     static final String PATH_TASK = PATH_ROOT + "/task";
 
